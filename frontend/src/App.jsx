@@ -5,6 +5,8 @@ function createMessageId() {
 }
 
 function App() {
+  const [user, setUser] = useState(null); // null = nao autenticado
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [messages, setMessages] = useState([
     {
       id: createMessageId(),
@@ -17,6 +19,38 @@ function App() {
   const [error, setError] = useState("");
   const messagesRef = useRef(null);
   const abortControllerRef = useRef(null);
+
+  // Verificar se ja existe token valido ao carregar
+  useEffect(() => {
+    (async () => {
+      const token = localStorage.getItem("chatllm_token");
+      if (token) {
+        try {
+          const data = await me();
+          setUser(data.email);
+        } catch {
+          localStorage.removeItem("chatllm_token");
+        }
+      }
+      setLoadingAuth(false);
+    })();
+  }, []);
+
+  const handleAuthSuccess = (email) => {
+    setUser(email);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("chatllm_token");
+    setUser(null);
+    setMessages([
+      {
+        id: createMessageId(),
+        role: "assistant",
+        content: "Bem-vindo ao ChatLLM Lab. Como posso ajudar voce hoje?",
+      },
+    ]);
+  };
 
   const chatHistory = useMemo(
     () => messages.filter((msg) => msg.role === "user" || msg.role === "assistant"),
@@ -108,10 +142,31 @@ function App() {
     }
   };
 
+  if (loadingAuth) {
+    return (
+      <main className="app-shell">
+        <header className="app-header">
+          <div className="brand">ChatLLM Lab</div>
+        </header>
+        <div className="auth-container">
+          <p style={{ textAlign: "center", color: "var(--muted)" }}>Carregando...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <Auth onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
         <div className="brand">ChatLLM Lab</div>
+        <div className="header-right">
+          <span className="user-email">{user}</span>
+          <button className="logout-btn" onClick={handleLogout}>Sair</button>
+        </div>
       </header>
 
       <section className="messages" aria-live="polite" ref={messagesRef}>

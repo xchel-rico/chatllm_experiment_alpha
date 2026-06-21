@@ -1,9 +1,58 @@
 const API_BASE = window.location.origin;
 
+function getToken() {
+  return localStorage.getItem("chatllm_token");
+}
+
+function authHeaders() {
+  const token = getToken();
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
+async function apiPost(path, body) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro na requisicao.");
+  }
+  return data;
+}
+
+async function apiGet(path) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: { ...authHeaders() },
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro na requisicao.");
+  }
+  return data;
+}
+
+async function register(email, password) {
+  return apiPost("/api/register", { email, password });
+}
+
+async function login(email, password) {
+  return apiPost("/api/login", { email, password });
+}
+
+async function logout() {
+  return apiPost("/api/logout", {});
+}
+
+async function me() {
+  return apiGet("/api/me");
+}
+
 async function sendMessageStream({ message, history, onDelta, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ message, history }),
     signal,
   });
