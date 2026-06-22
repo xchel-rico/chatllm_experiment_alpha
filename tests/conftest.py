@@ -92,3 +92,14 @@ def auth_headers(client, test_user):
     assert response.status_code == 200
     token = response.json()["token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def test_session(db_session, test_user):
+    """Cria uma sessao de teste e retorna seu id."""
+    from backend.models import Session as ChatSession
+    s = ChatSession(user_id=test_user.id)
+    db_session.add(s)
+    db_session.commit()
+    db_session.refresh(s)
+    return s

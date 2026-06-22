@@ -49,11 +49,37 @@ async function me() {
   return apiGet("/api/me");
 }
 
-async function sendMessageStream({ message, history, onDelta, signal }) {
+// ── Session API ──
+async function getSessions() {
+  return apiGet("/api/sessions");
+}
+
+async function createSession(title = "") {
+  return apiPost("/api/sessions", { title });
+}
+
+async function deleteSession(sessionId) {
+  const response = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  if (!response.ok && response.status !== 204) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || "Erro ao deletar sessao.");
+  }
+}
+
+async function getSessionMessages(sessionId) {
+  return apiGet(`/api/sessions/${sessionId}/messages`);
+}
+
+// ── Chat API ──
+
+async function sendMessageStream({ message, sessionId, history, onDelta, signal }) {
   const response = await fetch(`${API_BASE}/api/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, session_id: sessionId, history }),
     signal,
   });
 
